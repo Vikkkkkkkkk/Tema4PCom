@@ -8,7 +8,6 @@
 #include <arpa/inet.h>
 #include "helpers.h"
 #include "buffer.h"
-#include "json.hpp"
 
 #define HEADER_TERMINATOR "\r\n\r\n"
 #define HEADER_TERMINATOR_SIZE (sizeof(HEADER_TERMINATOR) - 1)

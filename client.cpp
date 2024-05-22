@@ -28,20 +28,29 @@ using namespace std;
 #define COOKIES_LENGTH 20
 #define PAYLOAD_TYPE "application/json"
 
-// bool containsWhitespace(const string& str) {
-//     for (char ch : str) {
-//         if (ch == ' ')
-//             return true;
-//     }
-//     return false;
-// }
+bool containsSpaces(const char* str) {
+    // Iterate through each character in the string
+    for (const char* ptr = str; *ptr != '\0'; ++ptr) {
+        if (*ptr == ' ') {
+            return true;
+        }
+    }
+    return false;
+}
 
-bool isNumber(const string& str) {
-    for (int i = 0; i < str.length(); i++) {
+bool isNumber(char* str) {
+    for (int i = 0; i < strlen(str) - 1; i++) {
         if (str[i] < '0' || str[i] > '9')
             return false;
     }
     return true;
+}
+
+void remove_newline(char *str) {
+    size_t len = strlen(str);
+    if (len > 0 && str[len - 1] == '\n') {
+        str[len - 1] = '\0';
+    }
 }
 
 int main(int argc, char *argv[])
@@ -53,7 +62,7 @@ int main(int argc, char *argv[])
     char **cookies;
     int nmb_cookies = 0;
     int sockfd;
-    char *token_jwt = (char *) malloc(500 * sizeof(char));
+    char *token_jwt = NULL;
 
     cookies = (char **) malloc(COOKIES_SIZE * sizeof(char *));
     for (int i = 0; i < COOKIES_SIZE; i++) {
@@ -61,7 +70,6 @@ int main(int argc, char *argv[])
     }
 
     while (1) {
-        // char *command = (char *) malloc(100 * sizeof(char));
         string command;
         cin >> command;
 
@@ -72,21 +80,26 @@ int main(int argc, char *argv[])
                     isLogedIn = true;
             }
             if (isLogedIn) {
-                cout << "You are already logged in." << endl;
+                cout << "ERROR You are already logged in." << endl;
                 continue;
             }
 
-            string username, password;
+            char username[100], password[100], newline[2];
+
+            fgets(newline, 2, stdin);
 
             cout << "username = ";
-            cin >> username;
+            fgets(username, 100, stdin);
             cout << "password = ";
-            cin >> password;
+            fgets(password, 100, stdin);
 
-            // if (containsWhitespace(username) || containsWhitespace(password)) {
-            //     cout << "ERROR Credentials cannot contain whitespaces." << endl;
-            //     continue;
-            // }
+            username[strcspn(username, "\n")] = 0;
+            password[strcspn(password, "\n")] = 0;
+
+            if (containsSpaces(username) || containsSpaces(password)) {
+                cout << "ERROR Credentials cannot contain whitespaces." << endl;
+                continue;
+            }
 
             sockfd = open_connection(SERVER_IP, SERVER_PORT, AF_INET, SOCK_STREAM, 0);
             if(sockfd < 0) {
@@ -118,16 +131,26 @@ int main(int argc, char *argv[])
                     isLogedIn = true;
             }
             if (isLogedIn) {
-                cout << "You are already logged in." << endl;
+                cout << "ERROR You are already logged in." << endl;
                 continue;
             }
 
-            string username, password;
+            char username[100], password[100], newline[2];
+
+            fgets(newline, 2, stdin);
 
             cout << "username = ";
-            cin >> username;
+            fgets(username, 100, stdin);
             cout << "password = ";
-            cin >> password;
+            fgets(password, 100, stdin);
+
+            username[strcspn(username, "\n")] = 0;
+            password[strcspn(password, "\n")] = 0;
+
+            if (containsSpaces(username) || containsSpaces(password)) {
+                cout << "ERROR Credentials cannot contain whitespaces." << endl;
+                continue;
+            }
 
             sockfd = open_connection(SERVER_IP, SERVER_PORT, AF_INET, SOCK_STREAM, 0);
             if(sockfd < 0) {
@@ -173,6 +196,7 @@ int main(int argc, char *argv[])
             json parsed_json = json::parse(json_resp);
             if (parsed_json.contains("token") && !parsed_json["token"].is_null()) {
                 string token = parsed_json["token"];
+                token_jwt = (char *) malloc(500 * sizeof(char));
                 strcpy(token_jwt, token.c_str());
                 cout << "SUCCESS Access to library granted." << endl;
             } else {
@@ -204,20 +228,51 @@ int main(int argc, char *argv[])
         }
 
         if (command == "add_book") {
-            string title, author, genre, publisher, page_count;
-            cout << "title = ";
-            cin >> title;
-            cout << "author = ";
-            cin >> author;
-            cout << "genre = ";
-            cin >> genre;
-            cout << "publisher = ";
-            cin >> publisher;
-            cout << "page count = ";
-            cin >> page_count;
+            bool isLogedIn = false;
+            for (int i = 0; i < nmb_cookies; i++) {
+                if (strstr(cookies[i], "connect.sid"))
+                    isLogedIn = true;
+            }
+            if (!isLogedIn) {
+                cout << "ERROR You are not logged in." << endl;
+                continue;
+            }
+            if (token_jwt == NULL) {
+                cout << "ERROR You do not have access to the library." << endl;
+                continue;
+            }
+
+            char newline[2];
+            char *title = (char *)calloc(420, sizeof(char));
+            char *author = (char *)calloc(420, sizeof(char));
+            char *genre = (char *)calloc(420, sizeof(char));
+            char *publisher = (char *)calloc(420, sizeof(char));
+
+            fgets(newline, 2, stdin);
+            cout << "title = " << flush;
+            fgets(title, 420, stdin);
+
+            cout << "author = " << flush;
+            fgets(author, 420, stdin);
+
+            cout << "genre = " << flush;
+            fgets(genre, 420, stdin);
+
+            cout << "publisher = " << flush;
+            fgets(publisher, 420, stdin);
+
+            title[strcspn(title, "\n")] = 0;
+            author[strcspn(author, "\n")] = 0;
+            genre[strcspn(genre, "\n")] = 0;
+            publisher[strcspn(publisher, "\n")] = 0;
+
+            char *page_count = (char *)calloc(10, sizeof(char));
+            cout << "page_count = ";
+            fgets(page_count, 10, stdin);
+            page_count[strcspn(page_count, "\n")] = 0;
 
             if (!isNumber(page_count)) {
-                cout << "ERROR Invalid data type!" << endl;
+                cout << "ERROR Given page count is not a number!" << endl;
                 continue;
             }
 
@@ -226,7 +281,7 @@ int main(int argc, char *argv[])
                 error("Socket not available. It has other missions to accomplish.");
             }
 
-            json new_book = {{"title", title}, {"author", author}, {"genre", genre}, {"page_count", page_count}, {"publisher", publisher}};
+            json new_book = {{"title", title}, {"author", author}, {"genre", genre}, {"publisher", publisher}, {"page_count", page_count}};
             string payload = new_book.dump();
 
             char *message = compute_post_request(SERVER_IP, SERVER_BOOKS, PAYLOAD_TYPE, payload.c_str(), NULL, 0, token_jwt);
@@ -245,7 +300,7 @@ int main(int argc, char *argv[])
         }
 
         if (command == "get_book") {
-            string id;
+            char id[10];
             cout << "id = ";
             cin >> id;
             if (!isNumber(id)) {
@@ -266,8 +321,6 @@ int main(int argc, char *argv[])
             char *response = receive_from_server(sockfd);
             close_connection(sockfd);
 
-            // cout << response;
-
             char *json_resp = basic_extract_json_response(response);
 
             json parsed_json = json::parse(json_resp);
@@ -279,16 +332,65 @@ int main(int argc, char *argv[])
             continue;
         }
 
+        if (command == "delete_book") {
+            char id[10];
+            cout << "id = ";
+            cin >> id;
+            if (!isNumber(id)) {
+                cout << "ERROR Given id is not a number!" << endl;
+                continue;
+            }
 
+            string new_url = SERVER_BOOKS + (string)"/" + id;
+
+            sockfd = open_connection(SERVER_IP, SERVER_PORT, AF_INET, SOCK_STREAM, 0);
+            if(sockfd < 0) {
+                error("Socket not available. It has other missions to accomplish.");
+            }
+
+            char *message = compute_delete_request(SERVER_IP, new_url.c_str(), PAYLOAD_TYPE, token_jwt);
+
+            send_to_server(sockfd, message);
+            char *response = receive_from_server(sockfd);
+            close_connection(sockfd);
+
+            char *json_resp = basic_extract_json_response(response);
+
+            if (!json_resp) {
+                cout << "SUCCESS Your book has been deleted successfully." << endl;
+            } else {
+                cout << "ERROR Your book could not be deleted from the library." << endl;
+            }
+        }
+
+        if (command == "logout") {
+            sockfd = open_connection(SERVER_IP, SERVER_PORT, AF_INET, SOCK_STREAM, 0);
+            if(sockfd < 0) {
+                error("Socket not available. It has other missions to accomplish.");
+            }
+
+            char *message = compute_get_request(SERVER_IP, SERVER_LOGOUT, NULL, cookies, nmb_cookies, NULL);
+
+            send_to_server(sockfd, message);
+            response = receive_from_server(sockfd);
+            close_connection(sockfd);
+
+            char *json_resp = basic_extract_json_response(response);
+            if (json_resp == NULL) {
+                cout << "SUCCESS You have logged out successfully." << endl;
+                nmb_cookies = 0;
+                free(token_jwt);
+                token_jwt = NULL;
+            } else {
+                cout << "ERROR You are not logged in." << endl;
+            }
+            continue;
+        }
 
         if (command == "exit") {
             break;
         }
     }
-
-    free(message);
-    free(response);
-
     return 0;
 }
 

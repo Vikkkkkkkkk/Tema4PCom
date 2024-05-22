@@ -9,5 +9,7 @@ char *compute_get_request(char *host, const char *url, char *query_params,
 // computes and returns a POST request string (cookies can be NULL if not needed)
 char *compute_post_request(char *host, char *url, char* content_type, const char *payload, char **cookies, int cookies_count, char *token_jwt);
 
+char* compute_delete_request(char *host, const char *url, char *content_type, char *token_jwt);
+
 #endif
 
